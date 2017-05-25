@@ -1,8 +1,8 @@
 {
-  "name": "hubot-jenkins",
+  "name": "sbueringer-hubot-jenkins",
   "description": "Jenkins Integration for Hubot",
   "version": "1.0.2",
-  "author": "Doug Cole",
+  "author": "Stefan Bueringer <npm.sbueringer@gmail.com>",
   "license": "MIT",
 
   "keywords": [
@@ -12,11 +12,11 @@
 
   "repository": {
     "type": "git",
-    "url": "git://github.com/hubot-scripts/hubot-jenkins.git"
+    "url": "git://github.com/sbueringer/hubot-jenkins.git"
   },
 
   "bugs": {
-    "url": "https://github.com/hubot-scripts/hubot-jenkins/issues"
+    "url": "https://github.com/sbueringer/hubot-jenkins/issues"
   },
 
   "dependencies": {
