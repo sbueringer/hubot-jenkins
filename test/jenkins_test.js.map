@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "jenkins_test.js",
+  "sourceRoot": "",
+  "sources": [
+    "jenkins_test.coffee"
+  ],
+  "names": [],
+  "mappings": ";AAAA;;AAAA"
+}
