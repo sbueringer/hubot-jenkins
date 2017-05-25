@@ -30,6 +30,5 @@
     "sinon": "*"
   },
 
-  "main": "index.coffee",
-
+  "main": "index.coffee"
 }
