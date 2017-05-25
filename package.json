@@ -1,5 +1,5 @@
 {
-  "name": "sbueringer-hubot-jenkins",
+  "name": "hubot-sbueringer-jenkins",
   "description": "Jenkins Integration for Hubot",
   "version": "1.1.2",
   "author": "Stefan Bueringer <npm.sbueringer@gmail.com>",
