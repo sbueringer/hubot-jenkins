@@ -29,6 +29,40 @@ querystring = require 'querystring'
 # list.
 jobList = []
 
+
+#<jenkins-url>/job/i3/job/i3-keycloak/job/develop/build
+# i3:i3-keycloak:develop
+# /job/i3/job/i3-keycloak/job/develop
+
+generateJobUrl = (jobString) ->
+  jobUrl = ""
+  jobUrlParts = jobString.split ":"
+  for jobUrlPart in jobUrlParts
+    escapedJobUrlParts = querystring.escape jobUrlPart
+    jobUrl += "/job/" + escapedJobUrlParts
+
+  return jobUrl
+
+getCrumb = (msg, callback) ->
+  url = process.env.HUBOT_JENKINS_URL
+  auth = new Buffer(process.env.HUBOT_JENKINS_AUTH).toString('base64')
+  reqCrumb = msg.http("#{url}/crumbIssuer/api/json")
+  reqCrumb.headers Authorization: "Basic #{auth}"
+  reqCrumb.get() (err, res, body) ->
+    if err
+      msg.reply "Jenkins says: #{err}"
+    else if 200 <= res.statusCode < 400 # Or, not an error code.
+      content = JSON.parse(body)
+      console.log body
+      console.log "Got Crumb #{content.crumbRequestField} #{content.crumb}"
+      callback(content.crumbRequestField, content.crumb)
+    else if 400 == res.statusCode
+      msg.reply "400"
+    else if 404 == res.statusCode
+      msg.reply "404"
+    else
+      msg.reply "Jenkins says: Status #{res.statusCode} #{body}"
+
 jenkinsBuildById = (msg) ->
   # Switch the index with the job name
   job = jobList[parseInt(msg.match[1]) - 1]
@@ -44,42 +78,21 @@ jenkinsBuild = (msg, buildWithEmptyParameters) ->
   params = msg.match[3]
   command = if buildWithEmptyParameters then "buildWithParameters" else "build"
 
-  #<jenkins-url>/job/i3/job/i3-keycloak/job/develop/build
-  # i3:i3-keycloak:develop
-  # /job/i3/job/i3-keycloak/job/develop
-
-  jobUrl = ""
-  jobUrlParts = msg.match[1].split ":"
-  for jobUrlPart in jobUrlParts
-    escapedJobUrlParts = querystring.escape jobUrlPart
-    jobUrl += "/job/" + escapedJobUrlParts
+  jobUrl = generateJobUrl msg.match[1]
 
   path = if params then "#{url}#{jobUrl}/buildWithParameters?#{params}" else "#{url}#{jobUrl}/#{command}"
 
   req = msg.http(path)
 
   if process.env.HUBOT_JENKINS_AUTH
-    auth = new Buffer(process.env.HUBOT_JENKINS_AUTH).toString('base64')
-    req.headers Authorization: "Basic #{auth}"
+    getCrumb msg, (crumbRequestField, crumb) =>
+      auth = new Buffer(process.env.HUBOT_JENKINS_AUTH).toString('base64')
+      req.headers Authorization: "Basic #{auth}"
+      req.header(crumbRequestField, crumb)
 
-    reqCrumb = msg.http("#{url}/crumbIssuer/api/json")
-    reqCrumb.headers Authorization: "Basic #{auth}"
-    reqCrumb.get() (err, res, body) ->
-      if err
-        msg.reply "Jenkins says: #{err}"
-      else if 200 <= res.statusCode < 400 # Or, not an error code.
-        content = JSON.parse(body)
-        console.log body
-        console.log "Got Crumb #{content.crumbRequestField} #{content.crumb}"
-        req.header(content.crumbRequestField, content.crumb)
-        console.log "req:"+ JSON.stringify(req)
-        sendBuildTrigger(msg, req, "#{url}#{jobUrl}")
-      else if 400 == res.statusCode
-        msg.reply "400"
-      else if 404 == res.statusCode
-        msg.reply "404"
-      else
-        msg.reply "Jenkins says: Status #{res.statusCode} #{body}"
+      console.log "req:"+ JSON.stringify(req)
+      sendBuildTrigger(msg, req, "#{url}#{jobUrl}")
+
   else
     sendBuildTrigger(msg, req, "#{url}#{jobUrl}")
 
@@ -99,9 +112,10 @@ sendBuildTrigger = (msg, req, jobLink) ->
 
 jenkinsDescribe = (msg) ->
   url = process.env.HUBOT_JENKINS_URL
-  job = msg.match[1]
 
-  path = "#{url}/job/#{job}/api/json"
+  jobUrl = generateJobUrl msg.match[1]
+
+  path = "#{url}#{jobUrl}/api/json"
 
   req = msg.http(path)
 
@@ -150,7 +164,7 @@ jenkinsDescribe = (msg) ->
         if not content.lastBuild
           return
 
-        path = "#{url}/job/#{job}/#{content.lastBuild.number}/api/json"
+        path = "#{url}#{jobUrl}/#{content.lastBuild.number}/api/json"
         req = msg.http(path)
         if process.env.HUBOT_JENKINS_AUTH
           auth = new Buffer(process.env.HUBOT_JENKINS_AUTH).toString('base64')
@@ -177,9 +191,9 @@ jenkinsDescribe = (msg) ->
 
 jenkinsLast = (msg) ->
   url = process.env.HUBOT_JENKINS_URL
-  job = msg.match[1]
+  jobUrl = generateJobUrl msg.match[1]
 
-  path = "#{url}/job/#{job}/lastBuild/api/json"
+  path = "#{url}#{jobUrl}/lastBuild/api/json"
 
   req = msg.http(path)
 
@@ -283,3 +297,4 @@ module.exports = (robot) ->
     describe: jenkinsDescribe
     last: jenkinsLast
   }
+
